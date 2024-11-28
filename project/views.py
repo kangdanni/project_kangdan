@@ -1,4 +1,6 @@
 from django.shortcuts import render
+from django.db.models import Sum, IntegerField
+from django.db.models import F,ExpressionWrapper
 
 # Create your views here.
 from rest_framework import status
@@ -8,6 +10,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, ReadOnlyField
 
 from .models import Category, Product, Coupon
+
 
 
 class CategorySerializer(serializers.Serializer):
@@ -23,19 +26,13 @@ class ProductsSerializer(serializers.Serializer):
   coupon_applicable=serializers.BooleanField()
 
 
-
-class ItemViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
-
-
 class TestView(APIView):
   def post(self,request):
     """
     사용자는 전체 리스트 조회가 가능하며, 카테고리별로 상품 필터링이 가능하다.
 
     상품이름. 설명, 가격 카테고리, 할인율(있을 경우), 쿠폰 적용 가능 여부를 포함한다.
-    
+
     """
     categorys = Category.objects.values()
     
@@ -74,13 +71,33 @@ class TestProductView(APIView):
 
     return Response(serializer.data)
   
-class CouponView(APIView):
+class CouponPriceView(APIView):
   def post(self,request):
+    
     coupon_produts = Product.objects.filter(
                       coupon_applicable=True
                       ).annotate(
+                        discounted_price =ExpressionWrapper(F('price') *(1 - F('discount_rate')),output_field=IntegerField())
+                      ).values()
+    
+    coupon_list = Coupon.objects.values()
 
-                      )
+    coupon_apply_list = []
+    for product in coupon_produts:
+      print(product)
+      item = dict()
+      item['name'] = product['name'] 
+      item['discount_list'] = []
 
+      for coupon in coupon_list:
+        print(coupon, 'cc')
+        final_price = product['discounted_price'] * (1-coupon['discount_rate'])
+        adj_coupon_code = coupon['code']
+        
+        item['final_price'] = final_price
+        item['adj_coupon_code']=adj_coupon_code
+        item['discount_list'].append(item)
 
-    return
+      coupon_apply_list.append(item)
+    print(coupon_apply_list)
+    return Response({'msg':'ok'})

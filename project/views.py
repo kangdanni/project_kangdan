@@ -81,23 +81,24 @@ class CouponPriceView(APIView):
                       ).values()
     
     coupon_list = Coupon.objects.values()
-
     coupon_apply_list = []
+
     for product in coupon_produts:
-      print(product)
+      
       item = dict()
       item['name'] = product['name'] 
       item['discount_list'] = []
 
       for coupon in coupon_list:
-        print(coupon, 'cc')
         final_price = product['discounted_price'] * (1-coupon['discount_rate'])
         adj_coupon_code = coupon['code']
-        
-        item['final_price'] = final_price
-        item['adj_coupon_code']=adj_coupon_code
-        item['discount_list'].append(item)
+        nested_item ={}
+        nested_item['final_price'] = int(final_price)
+        nested_item['adj_coupon_code']=adj_coupon_code
+
+        item['discount_list'].append(nested_item)
 
       coupon_apply_list.append(item)
-    print(coupon_apply_list)
+
+
     return Response({'msg':'ok'})

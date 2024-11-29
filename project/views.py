@@ -59,26 +59,31 @@ class ProductListView(APIView):
     사용자는 전체 리스트 조회가 가능하며, 카테고리별로 상품 필터링이 가능하다.
     상품이름. 설명, 가격 카테고리, 할인율(있을 경우), 쿠폰 적용 가능 여부를 포함한다.
     """
-    products = Product.objects.values()
-    cond = False
-
-
+    cond=False
     request_serializer = RequestSerializer(data=request.data)
     if not request_serializer.is_valid():
       return Response(request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     cond = request_serializer.data['cond']
+    obj_model =  Product.objects.select_related('category')
+   
     if cond:
-      obj_model=products.filter(category = cond)
-    else:
-      obj_model = products
-    
-    results = obj_model.annotate(category_name=Subquery(
-                  Category.objects.filter(
-                    id = OuterRef('id')
-                  ).values('name')
-                )).values('name','description','category_name','price'\
-                          ,'discount_rate','coupon_applicable')
+      obj_model= Product.objects.filter(category = cond).select_related('category')
+
+    results = list()
+  
+    for obj in obj_model:
+
+      result = dict()
+      result['name'] = obj.name
+      result['category_name']= obj.category.name
+      result['description']= obj.description
+      result['price']= obj.price
+      result['discount_rate']= obj.discount_rate
+      result['coupon_applicable']= obj.coupon_applicable
+
+      results.append(result)
+
     
     serializer = ResponseProductListSerializer(results,many=True)
     

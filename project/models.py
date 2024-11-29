@@ -19,7 +19,7 @@ class Product(models.Model):
   name = models.CharField(max_length=255)
   description = models.TextField()
   price = models.IntegerField()
-  category = models.ForeignKey(Category,  to_field='name', db_column='category', on_delete=models.CASCADE)
+  category = models.ForeignKey(Category, on_delete=models.CASCADE)
   discount_rate = models.FloatField()
   coupon_applicable = models.BooleanField()
  

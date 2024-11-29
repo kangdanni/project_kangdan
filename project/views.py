@@ -1,6 +1,5 @@
 from django.shortcuts import render
-from django.db.models import Sum, IntegerField
-from django.db.models import F,ExpressionWrapper
+from django.db.models import F,ExpressionWrapper,Q,IntegerField, OuterRef, Subquery
 
 # Create your views here.
 from rest_framework import status
@@ -12,21 +11,41 @@ from rest_framework.serializers import ModelSerializer, ReadOnlyField
 from .models import Category, Product, Coupon
 
 
-
+"""
+시리얼라이저를 선언한다.
+"""
 class CategorySerializer(serializers.Serializer):
   name = serializers.CharField(max_length=100)
 
-class ProductsSerializer(serializers.Serializer):
+class ResponseProductListSerializer(serializers.Serializer):
   
   name = serializers.CharField(max_length=100)
-  description = serializers.CharField()
+  description = serializers.CharField(max_length=255)
   price = serializers.IntegerField()
-  category = serializers.StringRelatedField()
-  discount_rate = serializers.FloatField()
+  category_name = serializers.CharField(max_length=100)
+  discount_rate = serializers.FloatField(allow_null=True)
   coupon_applicable=serializers.BooleanField()
+  
+  def to_representation(self, instance):
+    res = super().to_representation(instance)
+    if not res['discount_rate'] or res['discount_rate'] ==0:
+      del res['discount_rate']
+    return res
+
+class NestedCouponPriceSerizlier(serializers.Serializer):
+  final_price = serializers.IntegerField()
+  adj_coupon_code = serializers.CharField(max_length=25)
+
+class ResponseCouponPriceSerializer(serializers.Serializer):
+  name = serializers.CharField(max_length=100)
+  discount_list = NestedCouponPriceSerizlier(many=True)
 
 
-class TestView(APIView):
+
+"""
+API VIEW
+"""
+class ProductListView(APIView):
   def post(self,request):
     """
     사용자는 전체 리스트 조회가 가능하며, 카테고리별로 상품 필터링이 가능하다.
@@ -34,9 +53,24 @@ class TestView(APIView):
     상품이름. 설명, 가격 카테고리, 할인율(있을 경우), 쿠폰 적용 가능 여부를 포함한다.
 
     """
-    categorys = Category.objects.values()
+    products = Product.objects.values()
+    cond = False
+
+    if cond:
+      obj_model=products.filter(category = cond)
+    else:
+      obj_model = products
     
-    serializer= TestSerializer(categorys,many=True)
+    results = obj_model.annotate(category_name=Subquery(
+                  Category.objects.filter(
+                    id = OuterRef('id')
+                  ).values('name')
+                )).values('name','description','category_name','price'\
+                          ,'discount_rate','coupon_applicable')
+    
+    print(results)
+    serializer = ResponseProductListSerializer(results,many=True)
+    
 
     return Response(serializer.data)
 
@@ -49,11 +83,21 @@ class ProductDetailView(APIView):
   상품에 쿠폰이 적용된 경우 쿠폰 할인율을 적용한 최종가격도 표시해야한다.
   """
   def post(self,request):
-    Product.objects.filter()
+    
+    products = Product.objects.select_related('category').all().values()
 
-    return  
+    # for product in products:
+    #   print(product)
+    # products = Product.objects.all().values()
+    for product in products:
+      print(f' Category: {product}')
 
-class TestProductView(APIView):
+
+    return  Response({'msg':'dd'})
+
+
+
+class CouponPriceView(APIView):
   """
   상품에 적용가능한 쿠폰 목록을 제공한다.
   쿠폰이 적용된 상품은 할인이 추가되어 최종 가격을 계산한다.
@@ -61,17 +105,6 @@ class TestProductView(APIView):
   * 할인율은 상품별로 다를 수 있음.
   * 쿠폰이 적용되면 상품의 할인가격에 추가로 쿠폰할인이 적용되어 최종 가격이 결정된다.
   """
-  def post(self,request):
-
-    products  = Product.objects.values()
-
-    for i in products:
-      print(i)
-    serializer= ProductsSerializer(products,many=True)
-
-    return Response(serializer.data)
-  
-class CouponPriceView(APIView):
   def post(self,request):
     
     coupon_produts = Product.objects.filter(
@@ -84,7 +117,7 @@ class CouponPriceView(APIView):
     coupon_apply_list = []
 
     for product in coupon_produts:
-      
+
       item = dict()
       item['name'] = product['name'] 
       item['discount_list'] = []
@@ -100,5 +133,6 @@ class CouponPriceView(APIView):
 
       coupon_apply_list.append(item)
 
-
-    return Response({'msg':'ok'})
+    serializer = ResponseCouponPriceSerializer(coupon_apply_list,many=True)
+  
+    return Response(serializer.data,status=status.HTTP_200_OK)

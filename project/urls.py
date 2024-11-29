@@ -1,17 +1,16 @@
 from django.urls import path 
 
-from .views import TestView, TestProductView, CouponPriceView
-
+from .views import ProductListView, CouponPriceView, ProductDetailView
 
 urlpatterns = [
     path(
         "test",
-        TestView.as_view(),
+        ProductListView.as_view(),
         name="test",
     ),
         path(
         "test2",
-        TestProductView.as_view(),
+        ProductDetailView.as_view(),
         name="test2",
     ),
      path(

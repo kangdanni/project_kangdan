@@ -37,15 +37,17 @@ CREATE TABLE project_product
     category varchar(100)  NULL COMMENT '카테고리',
     discount_rate float NULL COMMENT '할인율',
     coupon_applicable BOOL COMMENT '쿠폰적용여부',
-    CONSTRAINT CUSTOMER_PK PRIMARY KEY (id),
-    FOREIGN KEY (category) REFERENCES project_category (name) ON UPDATE CASCADE
+    CONSTRAINT CUSTOMER_PK PRIMARY KEY (id)
 ) ;
 
+ALTER TABLE project_product
+ADD CONSTRAINT project_product_ibfk_1 FOREIGN KEY (category) REFERENCES category(id);
+
 INSERT INTO project_product(name,description,price,category,discount_rate,coupon_applicable)
-VALUES ('채식주의자','채식주의자 2007년도',20000,'교양',0.1,1),
-       ('소년이온다','소년이온다 2014년도',22000,'교양',0.5,1),
-       ('흰','흰 2016년도',10000,'자기계발',0.2,0),
-       ('작별하지않는다','작별하지않는다 2021년도',15000,'수필',0.3,0),
-       ('희랍어시간','희랍어 시간 2011년도',17000,'경제경영',0.1,0)
+VALUES ('채식주의자','채식주의자 2007년도',20000,3,null,1),
+       ('소년이온다','소년이온다 2014년도',22000,2,0.5,1),
+       ('흰','흰 2016년도',10000,1,0.2,0),
+       ('작별하지않는다','작별하지않는다 2021년도',15000,3,0.3,0),
+       ('희랍어시간','희랍어 시간 2011년도',17000,2,0.1,0)
 ;
 SET foreign_key_checks = 1;

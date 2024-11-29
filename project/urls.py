@@ -4,18 +4,18 @@ from .views import ProductListView, CouponPriceView, ProductDetailView
 
 urlpatterns = [
     path(
-        "test",
+        "get-product-list",
         ProductListView.as_view(),
-        name="test",
+        name="get-product-list",
     ),
         path(
-        "test2",
+        "get-product-detail",
         ProductDetailView.as_view(),
-        name="test2",
+        name="get-product-detail",
     ),
      path(
-        "test3",
+        "get-coupon-price",
         CouponPriceView.as_view(),
-        name="test3",
+        name="get-coupon-price",
     ),
 ]
